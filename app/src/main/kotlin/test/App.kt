@@ -24,5 +24,5 @@ class App {
 
 fun main() {
     println(App().greeting)
-    println(App().kmeans)
+    // println(App().kmeans)
 }
