@@ -85,7 +85,7 @@ class App (val players: List<Player>, val games: List<Game>) {
                     val player1 = players[i]
                     val player2 = players[j]
                     val score = affinityMatrix[i][j]
-                    println("FAFMATS score for ${player1.name} and ${player2.name}: $score")
+                    println("FAFMATS distance for ${player1.name} and ${player2.name}: $score")
                 }
             }
         }
