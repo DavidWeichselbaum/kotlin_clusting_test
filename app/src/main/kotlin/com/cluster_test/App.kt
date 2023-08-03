@@ -15,7 +15,10 @@ data class Game(val player1: String, val player2: String, val dateTime: LocalDat
 class App (val players: List<Player>, val games: List<Game>) {
 
     // val affinityScores = mutableMapOf<Pair<String, String>, Double>()
-    val affinityScoresMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
+    val affinityMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
+    // var hclust: HierarchicalClustering? = null
+    // var clustering: CompleteLinkage? = null
+    var clustering: HierarchicalClustering? = null
 
     fun make_affinity_matrix(elo_difference_weight: Double, time_difference_weight: Double) {
         var minEloDiff = Double.MAX_VALUE
@@ -68,8 +71,8 @@ class App (val players: List<Player>, val games: List<Game>) {
                 // affinityScores[player1.name to player2.name] = normalizedEloDiff * elo_difference_weight + normalizedTimeDiff * time_difference_weight
 
                 var fafmats_score = normalizedEloDiff * elo_difference_weight + normalizedTimeDiff * time_difference_weight
-                affinityScoresMatrix[i][j] = fafmats_score 
-                affinityScoresMatrix[j][i] = fafmats_score 
+                affinityMatrix[i][j] = fafmats_score 
+                affinityMatrix[j][i] = fafmats_score 
                 }
             }
     }
@@ -81,31 +84,35 @@ class App (val players: List<Player>, val games: List<Game>) {
                 if (i != j) {  // Optional, if you don't want to print the affinity score of a player with themselves.
                     val player1 = players[i]
                     val player2 = players[j]
-                    val score = affinityScoresMatrix[i][j]
-                    println("Affinity score for ${player1.name} and ${player2.name}: $score")
+                    val score = affinityMatrix[i][j]
+                    println("FAFMATS score for ${player1.name} and ${player2.name}: $score")
                 }
             }
         }
     }
 
+    fun create_clustering() {
+        val linkage = CompleteLinkage.of(affinityMatrix)
+        clustering = HierarchicalClustering.fit(linkage)
+    }
 
+    fun print_clustering() {
+        val tree = clustering?.tree()
 
+        if (tree != null) {
+            for (row in tree) {
+                println(row.joinToString(", "))
+            }
 
-    val list = listOf(
-        Triple("string1", 1.23f, LocalDateTime.now()),
-        Triple("string2", 4.56f, LocalDateTime.now().plusDays(1)),
-        Triple("string3", 7.89f, LocalDateTime.now().plusDays(2))
-    )
+            for (i in tree.indices) {
+                val merge = tree[i]
+                val firstItem = if (merge[0] < players.size) players[merge[0]].name else "Cluster ${merge[0] - players.size + 1}"
+                val secondItem = if (merge[1] < players.size) players[merge[1]].name else "Cluster ${merge[1] - players.size + 1}"
+                println("Step ${i+1}: Merge $firstItem and $secondItem into Cluster ${i+1}")
+            }
+        }
 
-    val similarities = arrayOf(
-        doubleArrayOf(1.0, 2.0, 3.0, 4.0),
-        doubleArrayOf(4.0, 5.0, 6.0, 7.0),
-        doubleArrayOf(7.0, 8.0, 9.0, 10.0), 
-        doubleArrayOf(11.0, 12.0, 13.0, 14.0),
-    )
-
-    val linkage = CompleteLinkage.of(similarities)
-    val hclust = HierarchicalClustering.fit(linkage)
+    }
 }
 
 
@@ -132,8 +139,6 @@ fun main() {
     val app = App(players, games)
     app.make_affinity_matrix(0.5, 0.5)
     app.print_affinity_matrix()
-    // val tree = App().hclust.tree()
-    // for (row in tree) {
-    //     println(row.joinToString(", "))
-    // }
+    app.create_clustering()
+    app.print_clustering()
 }
