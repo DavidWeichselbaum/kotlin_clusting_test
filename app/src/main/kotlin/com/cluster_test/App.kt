@@ -28,7 +28,7 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
     var clustering: HierarchicalClustering? = null
     public var tree: Node? = null
 
-    fun make_affinity_matrix(elo_difference_weight: Double, time_difference_weight: Double) {
+    fun makeAffinityMatrix(funFriendshipWeight: Double) {
         var minEloDiff = Double.MAX_VALUE
         var maxEloDiff = Double.MIN_VALUE
         var minTimeDiff = Double.MAX_VALUE
@@ -43,11 +43,11 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
                 val lastGame = games.filter { game -> (game.player1 == player1.name && game.player2 == player2.name) ||
                                                       (game.player1 == player2.name && game.player2 == player1.name) }
                                      .maxByOrNull { it.dateTime }
-                val most_recent_join_date = players[i].joiningDate.coerceAtLeast(players[j].joiningDate)
+                val mostRecentJoinDate = players[i].joiningDate.coerceAtLeast(players[j].joiningDate)
 
                 val secondsSinceLastGame = lastGame?.dateTime?.let {
                     java.time.temporal.ChronoUnit.SECONDS.between(it, LocalDateTime.now()).toDouble()
-                } ?: java.time.temporal.ChronoUnit.SECONDS.between(most_recent_join_date, LocalDateTime.now()).toDouble()
+                } ?: java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, LocalDateTime.now()).toDouble()
 
                 minEloDiff = minEloDiff.coerceAtMost(eloDiff)
                 maxEloDiff = maxEloDiff.coerceAtLeast(eloDiff)
@@ -65,28 +65,25 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
                 val lastGame = games.filter { game -> (game.player1 == player1.name && game.player2 == player2.name) ||
                                                       (game.player1 == player2.name && game.player2 == player1.name) }
                                      .maxByOrNull { it.dateTime }
-                val most_recent_join_date = players[i].joiningDate.coerceAtLeast(players[j].joiningDate)
+                val mostRecentJoinDate = players[i].joiningDate.coerceAtLeast(players[j].joiningDate)
 
                 val secondsSinceLastGame = lastGame?.dateTime?.let {
                     java.time.temporal.ChronoUnit.SECONDS.between(it, LocalDateTime.now()).toDouble()
-                } ?: java.time.temporal.ChronoUnit.SECONDS.between(most_recent_join_date, LocalDateTime.now()).toDouble()
+                } ?: java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, LocalDateTime.now()).toDouble()
 
                 // Normalize differences
                 val normalizedEloDiff = (eloDiff - minEloDiff) / (maxEloDiff - minEloDiff)
                 val normalizedTimeDiff = (secondsSinceLastGame - minTimeDiff) / (maxTimeDiff - minTimeDiff)
 
-                // Calculate the affinity score and add it to the map
-                // affinityScores[player1.name to player2.name] = normalizedEloDiff * elo_difference_weight + normalizedTimeDiff * time_difference_weight
-
-                var fafmats_score = normalizedEloDiff * elo_difference_weight + normalizedTimeDiff * time_difference_weight
-                affinityMatrix[i][j] = fafmats_score 
-                affinityMatrix[j][i] = fafmats_score 
+                var fafmatsScore = normalizedEloDiff * funFriendshipWeight + normalizedTimeDiff * (1-funFriendshipWeight)
+                affinityMatrix[i][j] = fafmatsScore 
+                affinityMatrix[j][i] = fafmatsScore 
                 }
             }
     }
 
 
-    fun print_affinity_matrix() {
+    fun printAffinityMatrix() {
         for (i in players.indices) {
             for (j in players.indices) {
                 if (i != j) {  // Optional, if you don't want to print the affinity score of a player with themselves.
@@ -100,13 +97,13 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
     }
 
 
-    fun create_clustering() {
+    fun createClustering() {
         val linkage = CompleteLinkage.of(affinityMatrix)
         clustering = HierarchicalClustering.fit(linkage)
     }
 
 
-    fun print_clustering() {
+    fun printClustering() {
         val merge = clustering?.tree()
         val heights = clustering?.height()
 
@@ -121,15 +118,15 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
 
         if (heights != null) {
             for (i in heights.indices) {
-                val cluster_height = heights[i]
-                println("Cluster ${i} height: ${cluster_height}")
+                val clusterHeight = heights[i]
+                println("Cluster ${i} height: ${clusterHeight}")
             }
         }
 
     }
 
 
-    fun create_tree() {
+    fun createTree() {
         val n = players.size
 
         // init player nodes
@@ -193,13 +190,13 @@ fun main() {
     }
 
     val tableSplitter = TabelSplitter(players, games)
-    tableSplitter.make_affinity_matrix(0.5, 0.5)
-    tableSplitter.print_affinity_matrix()
+    tableSplitter.makeAffinityMatrix(0.5)
+    tableSplitter.printAffinityMatrix()
     println()
-    tableSplitter.create_clustering()
+    tableSplitter.createClustering()
     println()
-    tableSplitter.print_clustering()
-    tableSplitter.create_tree()
+    tableSplitter.printClustering()
+    tableSplitter.createTree()
     println()
     tableSplitter.printTree()
 }
