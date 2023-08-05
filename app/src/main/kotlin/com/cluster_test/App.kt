@@ -7,18 +7,26 @@ import smile.clustering.HierarchicalClustering
 import smile.math.distance.EuclideanDistance
 
 
-// data class Player(val name: String, val elo: Int)
 data class Player(val name: String, val elo: Float, val joiningDate: LocalDateTime)
+
+
 data class Game(val player1: String, val player2: String, val dateTime: LocalDateTime)
 
 
-class App (val players: List<Player>, val games: List<Game>) {
+class Node {
+    var child1: Node? = null
+    var child2: Node? = null
+    var leaf: Int? = null
+    var cluster: Int? = null
+    var height: Double = 0.0
+}
 
-    // val affinityScores = mutableMapOf<Pair<String, String>, Double>()
+
+class TabelSplitter (val players: List<Player>, val games: List<Game>) {
+
     val affinityMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
-    // var hclust: HierarchicalClustering? = null
-    // var clustering: CompleteLinkage? = null
     var clustering: HierarchicalClustering? = null
+    public var tree: Node? = null
 
     fun make_affinity_matrix(elo_difference_weight: Double, time_difference_weight: Double) {
         var minEloDiff = Double.MAX_VALUE
@@ -91,35 +99,83 @@ class App (val players: List<Player>, val games: List<Game>) {
         }
     }
 
+
     fun create_clustering() {
         val linkage = CompleteLinkage.of(affinityMatrix)
         clustering = HierarchicalClustering.fit(linkage)
     }
 
+
     fun print_clustering() {
-        val tree = clustering?.tree()
+        val merge = clustering?.tree()
+        val heights = clustering?.height()
 
-        if (tree != null) {
-            for (row in tree) {
-                println(row.joinToString(", "))
+        if (merge != null && heights != null) {
+            for (i in merge.indices) {
+                val merge = merge[i]
+                val firstItem = if (merge[0] < players.size) players[merge[0]].name else "Cluster ${merge[0] - players.size}"
+                val secondItem = if (merge[1] < players.size) players[merge[1]].name else "Cluster ${merge[1] - players.size}"
+                println("Step ${i+1}: Merge $firstItem and $secondItem into Cluster ${i}")
             }
+        }
 
-            for (i in tree.indices) {
-                val merge = tree[i]
-                val firstItem = if (merge[0] < players.size) players[merge[0]].name else "Cluster ${merge[0] - players.size + 1}"
-                val secondItem = if (merge[1] < players.size) players[merge[1]].name else "Cluster ${merge[1] - players.size + 1}"
-                println("Step ${i+1}: Merge $firstItem and $secondItem into Cluster ${i+1}")
+        if (heights != null) {
+            for (i in heights.indices) {
+                val cluster_height = heights[i]
+                println("Cluster ${i} height: ${cluster_height}")
             }
         }
 
     }
+
+
+    fun create_tree() {
+        val n = players.size
+
+        // init player nodes
+        val nodes = MutableList(n) { Node().apply { leaf = it } }
+
+        val merge = clustering?.tree()
+        val heights = clustering?.height()
+
+        if (merge != null && heights != null) {
+            for (i in 0 until n-1) {
+                val newNode = Node()
+                newNode.cluster = i
+                newNode.child1 = nodes[merge[i][0]]
+                newNode.child2 = nodes[merge[i][1]]
+                newNode.height = heights[i]
+                nodes.add(newNode)
+            }
+            tree = nodes.last()
+        }
+    }
+
+
+    fun printTree(node: Node? = tree, indent: String = "") {
+        if (node == null) {
+            println("The tree is empty.")
+            return
+        }
+
+        if (node.leaf != null) {
+            println("${indent}└─── Player: ${node.leaf}, Height: ${node.height}")
+        } else {
+            println("${indent}└─── Cluster: ${node.cluster}, Height: ${node.height}")
+            printTree(node.child1!!, indent + "   |")
+            printTree(node.child2!!, indent + "    ")
+        }
+    }
+
+
 }
+
 
 
 fun main() {
     val players = List(17) {
         Player(
-            "Player${it + 1}",
+            "Player${it}",
             (1000..2000).random().toFloat(),
             LocalDateTime.now().minusDays((0..30).random().toLong())
         )
@@ -136,9 +192,14 @@ fun main() {
         Game(player1, player2, dateTime)
     }
 
-    val app = App(players, games)
-    app.make_affinity_matrix(0.5, 0.5)
-    app.print_affinity_matrix()
-    app.create_clustering()
-    app.print_clustering()
+    val tableSplitter = TabelSplitter(players, games)
+    tableSplitter.make_affinity_matrix(0.5, 0.5)
+    tableSplitter.print_affinity_matrix()
+    println()
+    tableSplitter.create_clustering()
+    println()
+    tableSplitter.print_clustering()
+    tableSplitter.create_tree()
+    println()
+    tableSplitter.printTree()
 }
