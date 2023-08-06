@@ -6,7 +6,6 @@ import java.util.ArrayDeque
 
 import smile.clustering.linkage.CompleteLinkage
 import smile.clustering.HierarchicalClustering
-import smile.math.distance.EuclideanDistance
 
 import com.playersplitter.Player
 import com.playersplitter.Game

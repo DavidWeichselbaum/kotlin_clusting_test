@@ -1,12 +1,6 @@
 package com.playersplitter
 
 import java.time.LocalDateTime
-import java.util.Stack
-import java.util.ArrayDeque
-
-import smile.clustering.linkage.CompleteLinkage
-import smile.clustering.HierarchicalClustering
-import smile.math.distance.EuclideanDistance
 
 import com.playersplitter.PlayerSplitter
 import com.playersplitter.Player
