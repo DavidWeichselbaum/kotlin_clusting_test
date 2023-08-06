@@ -41,5 +41,5 @@ dependencies {
 application {
     // Define the main class for the application.
     // mainClass.set("test.AppKt")
-    mainClass.set("com.cluster_test.AppKt")
+    mainClass.set("com.playersplitter.AppKt")
 }

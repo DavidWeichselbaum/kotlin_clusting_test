@@ -1,4 +1,4 @@
-package com.cluster_test
+package com.playersplitter
 
 import java.time.LocalDateTime
 import java.util.Stack
@@ -115,20 +115,20 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
         val merge = clustering?.tree()
         val heights = clustering?.height()
 
-        if (merge != null && heights != null) {
-            for (i in merge.indices) {
-                val merge = merge[i]
-                val firstItem = if (merge[0] < players.size) players[merge[0]].name else "Cluster ${merge[0] - players.size}"
-                val secondItem = if (merge[1] < players.size) players[merge[1]].name else "Cluster ${merge[1] - players.size}"
-                println("Step ${i+1}: Merge $firstItem and $secondItem into Cluster ${i}")
-            }
+        if (merge == null || heights == null) {
+            return
         }
 
-        if (heights != null) {
-            for (i in heights.indices) {
-                val clusterHeight = heights[i]
-                println("Cluster ${i} height: ${clusterHeight}")
-            }
+        for (i in merge.indices) {
+            val currentMerge = merge[i]
+            val firstItem = if (currentMerge[0] < players.size) players[currentMerge[0]].name else "Cluster ${currentMerge[0] - players.size}"
+            val secondItem = if (currentMerge[1] < players.size) players[currentMerge[1]].name else "Cluster ${currentMerge[1] - players.size}"
+            println("Step ${i+1}: Merge $firstItem and $secondItem into Cluster ${i}")
+        }
+
+        for (i in heights.indices) {
+            val clusterHeight = heights[i]
+            println("Cluster ${i} height: ${clusterHeight}")
         }
 
     }
