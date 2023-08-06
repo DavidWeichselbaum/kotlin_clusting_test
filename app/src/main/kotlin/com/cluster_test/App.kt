@@ -24,7 +24,7 @@ class Node {
 }
 
 
-class TabelSplitter (val players: List<Player>, val games: List<Game>, val funFriendshipWeight: Double) {
+class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funFriendshipWeight: Double) {
 
     val affinityMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
     var clustering: HierarchicalClustering? = null
@@ -281,18 +281,18 @@ fun main() {
 
 
     val funFriendshipWeight = 0.5
-    val tableSplitter = TabelSplitter(players, games, funFriendshipWeight)
+    val playerSplitter = PlayerSplitter(players, games, funFriendshipWeight)
 
-    tableSplitter.printAffinityMatrix()
+    playerSplitter.printAffinityMatrix()
     println()
-    tableSplitter.printClustering()
+    playerSplitter.printClustering()
     println()
-    tableSplitter.printTree()
+    playerSplitter.printTree()
     println()
 
     var playerSplitTargets = listOf(8, 9)
     println("Split Targets: ${playerSplitTargets}")
-    var playerSplits = tableSplitter.split(playerSplitTargets)
+    var playerSplits = playerSplitter.split(playerSplitTargets)
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
@@ -303,7 +303,7 @@ fun main() {
 
     playerSplitTargets = listOf(6, 6, 5)
     println("Split Targets: ${playerSplitTargets}")
-    playerSplits = tableSplitter.split(playerSplitTargets)
+    playerSplits = playerSplitter.split(playerSplitTargets)
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
@@ -314,7 +314,7 @@ fun main() {
 
     playerSplitTargets = listOf(8, 8, 1)
     println("Split Targets: ${playerSplitTargets}")
-    playerSplits = tableSplitter.split(playerSplitTargets)
+    playerSplits = playerSplitter.split(playerSplitTargets)
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
@@ -325,7 +325,7 @@ fun main() {
 
     playerSplitTargets = listOf(8, 8)
     println("Split Targets: ${playerSplitTargets}")
-    playerSplits = tableSplitter.split(playerSplitTargets)
+    playerSplits = playerSplitter.split(playerSplitTargets)
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
@@ -336,7 +336,7 @@ fun main() {
 
     playerSplitTargets = listOf(8, 9, 0)
     println("Split Targets: ${playerSplitTargets}")
-    playerSplits = tableSplitter.split(playerSplitTargets)
+    playerSplits = playerSplitter.split(playerSplitTargets)
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
