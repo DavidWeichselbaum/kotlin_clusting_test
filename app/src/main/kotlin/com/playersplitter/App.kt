@@ -9,7 +9,7 @@ import com.playersplitter.Node
 
 
 fun main() {
-    val players = List(17) {
+    val allPlayers = List(100) {
         Player(
             id=it,
             "Player${it}",
@@ -17,6 +17,7 @@ fun main() {
             LocalDateTime.now().minusDays((0..30).random().toLong())
         )
     }
+    val players = allPlayers.slice(30..46)  // to test indexing
 
 
     val games = List(100) {
@@ -40,58 +41,25 @@ fun main() {
     playerSplitter.printTree()
     println()
 
-    var playerSplitTargets = listOf(8, 9)
-    println("Split Targets: ${playerSplitTargets}")
-    var playerSplits = playerSplitter.split(playerSplitTargets)
-    if (playerSplits != null){
-        for (playerSplit in playerSplits) {
-            println("Split: ${playerSplit}")
-            println("N Players: ${playerSplit.size}")
-        }
-    }
-    println()
+    var playerSplitTargetList = listOf(
+        listOf(8, 9),
+        listOf(6, 6, 5),
+        listOf(8, 8, 1),
+        listOf(8, 8),
+        listOf(8, 9, 0)
+    )
 
-    playerSplitTargets = listOf(6, 6, 5)
-    println("Split Targets: ${playerSplitTargets}")
-    playerSplits = playerSplitter.split(playerSplitTargets)
-    if (playerSplits != null){
-        for (playerSplit in playerSplits) {
-            println("Split: ${playerSplit}")
-            println("N Players: ${playerSplit.size}")
+    for (playerSplitTargets in playerSplitTargetList) {
+        println("Split Targets: ${playerSplitTargets}")
+        val playerSplits = playerSplitter.split(playerSplitTargets)
+        if (playerSplits != null){
+            for (playerSplit in playerSplits) {
+                println("Split of ${playerSplit.size} players:")
+                for (player in playerSplit) {
+                    println("    " + player)
+                }
+            }
         }
+        println()
     }
-    println()
-
-    playerSplitTargets = listOf(8, 8, 1)
-    println("Split Targets: ${playerSplitTargets}")
-    playerSplits = playerSplitter.split(playerSplitTargets)
-    if (playerSplits != null){
-        for (playerSplit in playerSplits) {
-            println("Split: ${playerSplit}")
-            println("N Players: ${playerSplit.size}")
-        }
-    }
-    println()
-
-    playerSplitTargets = listOf(8, 8)
-    println("Split Targets: ${playerSplitTargets}")
-    playerSplits = playerSplitter.split(playerSplitTargets)
-    if (playerSplits != null){
-        for (playerSplit in playerSplits) {
-            println("Split: ${playerSplit}")
-            println("N Players: ${playerSplit.size}")
-        }
-    }
-    println()
-
-    playerSplitTargets = listOf(8, 9, 0)
-    println("Split Targets: ${playerSplitTargets}")
-    playerSplits = playerSplitter.split(playerSplitTargets)
-    if (playerSplits != null){
-        for (playerSplit in playerSplits) {
-            println("Split: ${playerSplit}")
-            println("N Players: ${playerSplit.size}")
-        }
-    }
-    println()
 }
