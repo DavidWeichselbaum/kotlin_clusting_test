@@ -24,11 +24,17 @@ class Node {
 }
 
 
-class TabelSplitter (val players: List<Player>, val games: List<Game>) {
+class TabelSplitter (val players: List<Player>, val games: List<Game>, val funFriendshipWeight: Double) {
 
     val affinityMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
     var clustering: HierarchicalClustering? = null
     public var tree: Node? = null
+
+    init {
+        makeAffinityMatrix(funFriendshipWeight)
+        createClustering()
+        createTree()
+    }
 
     fun makeAffinityMatrix(funFriendshipWeight: Double) {
         var minEloDiff = Double.MAX_VALUE
@@ -174,10 +180,32 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
     }
 
 
+    fun checkSplits(groupSizes: List<Int>): Boolean {
+        if (groupSizes.sum() != players.size) {
+            println("Group sizes ${groupSizes} (sum ${groupSizes.sum()}) do not fit into a set of ${players.size} players!")
+            return false
+        }
+
+        for (groupSize in groupSizes) {
+            if (groupSize < 1) {
+                println("Group size ${groupSize} is too small!")
+                return false
+            }
+        }
+
+        return true
+    }
+
+
     fun split(groupSizes: List<Int>): MutableList<MutableList<Int>>? {
         if (tree == null) {
+            println("The tree is empty.")
             return null
         }
+        if (! checkSplits(groupSizes)){
+            return null
+        }
+
         // Stack for DFS
         val stack = ArrayDeque<Node>()
         stack.push(tree)
@@ -251,42 +279,69 @@ fun main() {
         Game(player1, player2, dateTime)
     }
 
-    val tableSplitter = TabelSplitter(players, games)
-    tableSplitter.makeAffinityMatrix(0.5)
+
+    val funFriendshipWeight = 0.5
+    val tableSplitter = TabelSplitter(players, games, funFriendshipWeight)
+
     tableSplitter.printAffinityMatrix()
     println()
-    tableSplitter.createClustering()
-    println()
     tableSplitter.printClustering()
-    tableSplitter.createTree()
     println()
     tableSplitter.printTree()
-
     println()
 
     var playerSplitTargets = listOf(8, 9)
     println("Split Targets: ${playerSplitTargets}")
-
     var playerSplits = tableSplitter.split(playerSplitTargets)
-
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
             println("N Players: ${playerSplit.size}")
         }
     }
-
     println()
 
     playerSplitTargets = listOf(6, 6, 5)
     println("Split Targets: ${playerSplitTargets}")
-
     playerSplits = tableSplitter.split(playerSplitTargets)
-
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
             println("Split: ${playerSplit}")
             println("N Players: ${playerSplit.size}")
         }
     }
+    println()
+
+    playerSplitTargets = listOf(8, 8, 1)
+    println("Split Targets: ${playerSplitTargets}")
+    playerSplits = tableSplitter.split(playerSplitTargets)
+    if (playerSplits != null){
+        for (playerSplit in playerSplits) {
+            println("Split: ${playerSplit}")
+            println("N Players: ${playerSplit.size}")
+        }
+    }
+    println()
+
+    playerSplitTargets = listOf(8, 8)
+    println("Split Targets: ${playerSplitTargets}")
+    playerSplits = tableSplitter.split(playerSplitTargets)
+    if (playerSplits != null){
+        for (playerSplit in playerSplits) {
+            println("Split: ${playerSplit}")
+            println("N Players: ${playerSplit.size}")
+        }
+    }
+    println()
+
+    playerSplitTargets = listOf(8, 9, 0)
+    println("Split Targets: ${playerSplitTargets}")
+    playerSplits = tableSplitter.split(playerSplitTargets)
+    if (playerSplits != null){
+        for (playerSplit in playerSplits) {
+            println("Split: ${playerSplit}")
+            println("N Players: ${playerSplit.size}")
+        }
+    }
+    println()
 }
