@@ -12,6 +12,21 @@ import com.playersplitter.Game
 import com.playersplitter.Node
 
 
+fun getSecondsSinceLastGame(player1: Player, player2: Player, games: List<Game>): Double {
+    // If the players have not encountered each other in a game, it will pick the most recent join date.
+    val lastGameDate = games.filter { game -> (game.player1 == player1.id && game.player2 == player2.id) ||
+                                          (game.player1 == player2.id && game.player2 == player1.id) }
+                         .maxByOrNull { it.dateTime }
+    val mostRecentJoinDate = player1.joiningDate.coerceAtLeast(player2.joiningDate)
+
+    val secondsSinceLastGame = lastGameDate?.dateTime?.let {
+        java.time.temporal.ChronoUnit.SECONDS.between(it, LocalDateTime.now()).toDouble()
+    } ?: java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, LocalDateTime.now()).toDouble()
+
+    return secondsSinceLastGame
+}
+
+
 class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funFriendshipWeight: Double) {
 
     val affinityMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
@@ -35,15 +50,9 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
             for (j in i+1 until players.size) {
                 val player1 = players[i]
                 val player2 = players[j]
-                val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
-                val lastGame = games.filter { game -> (game.player1 == player1.name && game.player2 == player2.name) ||
-                                                      (game.player1 == player2.name && game.player2 == player1.name) }
-                                     .maxByOrNull { it.dateTime }
-                val mostRecentJoinDate = players[i].joiningDate.coerceAtLeast(players[j].joiningDate)
 
-                val secondsSinceLastGame = lastGame?.dateTime?.let {
-                    java.time.temporal.ChronoUnit.SECONDS.between(it, LocalDateTime.now()).toDouble()
-                } ?: java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, LocalDateTime.now()).toDouble()
+                val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
+                val secondsSinceLastGame = getSecondsSinceLastGame(player1, player2, games)
 
                 minEloDiff = minEloDiff.coerceAtMost(eloDiff)
                 maxEloDiff = maxEloDiff.coerceAtLeast(eloDiff)
@@ -57,15 +66,9 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
             for (j in i+1 until players.size) {
                 val player1 = players[i]
                 val player2 = players[j]
-                val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
-                val lastGame = games.filter { game -> (game.player1 == player1.name && game.player2 == player2.name) ||
-                                                      (game.player1 == player2.name && game.player2 == player1.name) }
-                                     .maxByOrNull { it.dateTime }
-                val mostRecentJoinDate = players[i].joiningDate.coerceAtLeast(players[j].joiningDate)
 
-                val secondsSinceLastGame = lastGame?.dateTime?.let {
-                    java.time.temporal.ChronoUnit.SECONDS.between(it, LocalDateTime.now()).toDouble()
-                } ?: java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, LocalDateTime.now()).toDouble()
+                val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
+                val secondsSinceLastGame = getSecondsSinceLastGame(player1, player2, games)
 
                 // Normalize differences
                 val normalizedEloDiff = (eloDiff - minEloDiff) / (maxEloDiff - minEloDiff)
@@ -85,8 +88,10 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
                 if (i != j) {  // Optional, if you don't want to print the affinity score of a player with themselves.
                     val player1 = players[i]
                     val player2 = players[j]
+                    val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
+                    val secondsSinceLastGame = getSecondsSinceLastGame(player1, player2, games)
                     val score = affinityMatrix[i][j]
-                    println("FAFMATS distance for ${player1.name} and ${player2.name}: $score")
+                    println("FAFMATS distance for ${player1.name} [elo: ${player1.elo}] and ${player2.name} [elo: ${player2.elo}] with elo difference ${eloDiff} and time difference ${secondsSinceLastGame}: $score")
                 }
             }
         }
@@ -123,16 +128,15 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
 
 
     fun createTree() {
-        val n = players.size
 
         // init player nodes
-        val nodes = MutableList(n) { Node().apply { leaf = it } }
+        val nodes = players.map { Node().apply { player = it } }.toMutableList()
 
         val merge = clustering?.tree()
         val heights = clustering?.height()
 
         if (merge != null && heights != null) {
-            for (i in 0 until n-1) {
+            for (i in 0 until players.size-1) {
                 val newNode = Node()
                 newNode.cluster = i
                 newNode.child1 = nodes[merge[i][0]]
@@ -151,8 +155,9 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
             return
         }
 
-        if (node.leaf != null) {
-            println("${indent}└─── Player: ${node.leaf}, [${"%.2f".format(node.height)}]")
+        val nodePlayer = node.player
+        if (nodePlayer != null) {
+            println("${indent}└─── Player: ${nodePlayer.name}, [${"%.2f".format(node.height)}]")
         } else {
             println("${indent}└─── Cluster: ${node.cluster}, [${"%.2f".format(node.height)}]")
             val child1height = node.child1?.height ?: 0.0
@@ -185,7 +190,7 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
     }
 
 
-    fun split(groupSizes: List<Int>): MutableList<MutableList<Int>>? {
+    fun split(groupSizes: List<Int>): MutableList<MutableList<Player>>? {
         if (tree == null) {
             println("The tree is empty.")
             return null
@@ -198,17 +203,17 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
         val stack = ArrayDeque<Node>()
         stack.push(tree)
 
-        val result = mutableListOf<MutableList<Int>>()
+        val result = mutableListOf<MutableList<Player>>()
 
         for (groupSize in groupSizes) {
-            val group = mutableListOf<Int>()
+            val group = mutableListOf<Player>()
 
             while (stack.isNotEmpty() && group.size < groupSize) {
                 val node = stack.pop()
 
-                // If the node is a leaf, add it to group
-                if (node.leaf != null) {
-                    group.add(node.leaf!!)
+                // If the node is a player, add it to group
+                if (node.player != null) {
+                    group.add(node.player!!)
                 } else {
                     // Else, add its children to stack
                     val child1height = node.child1?.height ?: 0.0
