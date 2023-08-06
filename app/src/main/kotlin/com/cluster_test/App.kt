@@ -158,11 +158,18 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
         }
 
         if (node.leaf != null) {
-            println("${indent}└─── Player: ${node.leaf}, Height: ${node.height}")
+            println("${indent}└─── Player: ${node.leaf}, [${"%.2f".format(node.height)}]")
         } else {
-            println("${indent}└─── Cluster: ${node.cluster}, Height: ${node.height}")
-            printTree(node.child1!!, indent + "   |")
-            printTree(node.child2!!, indent + "    ")
+            println("${indent}└─── Cluster: ${node.cluster}, [${"%.2f".format(node.height)}]")
+            val child1height = node.child1?.height ?: 0.0
+            val child2height = node.child2?.height ?: 0.0
+            if (child1height > child2height) {
+                printTree(node.child1!!, indent + "     |")
+                printTree(node.child2!!, indent + "      ")
+            } else {
+                printTree(node.child2!!, indent + "     |")
+                printTree(node.child1!!, indent + "      ")
+        }
         }
     }
 
@@ -188,12 +195,24 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
                     group.add(node.leaf!!)
                 } else {
                     // Else, add its children to stack
-                    // We add child2 first, so child1 is processed first (LIFO stack)
-                    if (node.child2 != null) {
-                        stack.push(node.child2!!)
-                    }
-                    if (node.child1 != null) {
-                        stack.push(node.child1!!)
+                    val child1height = node.child1?.height ?: 0.0
+                    val child2height = node.child2?.height ?: 0.0
+                    if (child1height > child2height) {
+                        // To follow the heights, add child2 first, so child1 is processed first (LIFO stack)
+                        if (node.child2 != null) {
+                            stack.push(node.child2!!)
+                        }
+                        if (node.child1 != null) {
+                            stack.push(node.child1!!)
+                        }
+                    } else {
+                        // To follow the heights, add child1 first, so child2 is processed first (LIFO stack)
+                        if (node.child1 != null) {
+                            stack.push(node.child1!!)
+                        }
+                        if (node.child2 != null) {
+                            stack.push(node.child2!!)
+                        }
                     }
                 }
             }
@@ -208,92 +227,6 @@ class TabelSplitter (val players: List<Player>, val games: List<Game>) {
 
         return result
     }
-
-
-    // fun split(playerSplits: List<Int>){
-    //     if (tree == null) {
-    //         println("The tree is empty.")
-    //         return
-    //     }
-
-    //     val playerSubset: List<Player>
-    //     for (nPlayers in playerSplits) {
-    //         println("Splitting off ${nPlayers} players.")
-    //         val lowestNode = getLowestNode()
-    //         println("Lowest Player: ${lowestNode}")
-
-    //         var splitPlayers = splitPlayersFromTable(tree, nPlayers)
-    //         if (splitPlayers == null) {
-    //             println("No Players split")
-    //             return
-    //         }
-    //         for (splitPlayer in splitPlayers) {
-    //             println("SplitPlayer: ${splitPlayer}")
-    //         }
-
-    //         printTree()
-    //         println()
-    //     }
-    // }
-
-
-    // fun splitPlayersFromTable(root: Node?, groupSize: Int): MutableList<Int>? {
-    //     if (root == null) {
-    //         return null
-    //     }
-
-    //     // List to store leaf nodes
-    //     val leaves = mutableListOf<Int>()
-
-    //     // Stack for DFS
-    //     val stack = Stack<Node>()
-    //     stack.push(root)
-
-    //     while (stack.isNotEmpty() && leaves.size < groupSize) {
-    //         val node = stack.pop()
-
-    //         // If the node is a leaf, add it to leaves
-    //         if (node.leaf != null) {
-    //             leaves.add(node.leaf!!)
-    //         } else {
-    //             // Else, add its children to stack
-    //             // We add child2 first, so child1 is processed first (LIFO stack)
-    //             if (node.child2 != null) {
-    //                 stack.push(node.child2!!)
-    //             }
-    //             if (node.child1 != null) {
-    //                 stack.push(node.child1!!)
-    //             }
-    //         }
-    //     }
-
-    //     // If we have enough leaves, return them
-    //     if (leaves.size == groupSize) {
-    //         return leaves
-    //     }
-
-    //     return null
-    // }
-
-
-    // fun getLowestNode(root: Node? = tree): Int? {
-    //     var currentNode = root
-    //     while (currentNode != null && currentNode.leaf == null) {
-    //         currentNode = if (currentNode.child1!!.height > currentNode.child2!!.height) {
-    //             currentNode.child1
-    //         } else {
-    //             currentNode.child2
-    //         }
-    //     }
-    //     return currentNode?.leaf
-    // }
-
-
-    // fun splitPlayersFromTable(nPlayers: Int) {
-
-    // }
-
-
 }
 
 
@@ -329,10 +262,26 @@ fun main() {
     println()
     tableSplitter.printTree()
 
-    val playerSplitTargets = listOf(8, 9)
+    println()
+
+    var playerSplitTargets = listOf(8, 9)
     println("Split Targets: ${playerSplitTargets}")
 
-    val playerSplits = tableSplitter.split(playerSplitTargets)
+    var playerSplits = tableSplitter.split(playerSplitTargets)
+
+    if (playerSplits != null){
+        for (playerSplit in playerSplits) {
+            println("Split: ${playerSplit}")
+            println("N Players: ${playerSplit.size}")
+        }
+    }
+
+    println()
+
+    playerSplitTargets = listOf(6, 6, 5)
+    println("Split Targets: ${playerSplitTargets}")
+
+    playerSplits = tableSplitter.split(playerSplitTargets)
 
     if (playerSplits != null){
         for (playerSplit in playerSplits) {
