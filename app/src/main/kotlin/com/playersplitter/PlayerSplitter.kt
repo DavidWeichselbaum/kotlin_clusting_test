@@ -29,17 +29,17 @@ fun getSecondsSinceLastGame(player1: Player, player2: Player, games: List<Game>)
 
 class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funFriendshipWeight: Double) {
 
-    val affinityMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
+    val distanceMatrix: Array<DoubleArray> = Array(players.size) { DoubleArray(players.size) }
     var clustering: HierarchicalClustering? = null
     public var tree: Node? = null
 
     init {
-        makeAffinityMatrix(funFriendshipWeight)
+        makeDistanceMatrix(funFriendshipWeight)
         createClustering()
         createTree()
     }
 
-    fun makeAffinityMatrix(funFriendshipWeight: Double) {
+    fun makeDistanceMatrix(funFriendshipWeight: Double) {
         var minEloDiff = Double.MAX_VALUE
         var maxEloDiff = Double.MIN_VALUE
         var minTimeDiff = Double.MAX_VALUE
@@ -60,8 +60,10 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
                 maxTimeDiff = maxTimeDiff.coerceAtLeast(secondsSinceLastGame)
             }
         }
+        val eloDifference = if (maxEloDiff - minEloDiff != 0.0) maxEloDiff - minEloDiff else 1.0  // guard for division by 0!
+        val timeDifference = if (maxTimeDiff - minTimeDiff != 0.0) maxTimeDiff - minTimeDiff else 1.0  // guard for division by 0!
 
-        // Calculate normalized differences and affinity scores
+        // Calculate normalized differences and scores
         for (i in players.indices) {
             for (j in i+1 until players.size) {
                 val player1 = players[i]
@@ -74,23 +76,28 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
                 val normalizedEloDiff = (eloDiff - minEloDiff) / (maxEloDiff - minEloDiff)
                 val normalizedTimeDiff = (secondsSinceLastGame - minTimeDiff) / (maxTimeDiff - minTimeDiff)
 
-                var fafmatsScore = normalizedEloDiff * funFriendshipWeight + normalizedTimeDiff * (1-funFriendshipWeight)
-                affinityMatrix[i][j] = fafmatsScore 
-                affinityMatrix[j][i] = fafmatsScore 
+                val funDistance: Double = normalizedEloDiff
+                val friendshipDistance: Double = 1 - normalizedTimeDiff
+
+                val fafmatsDistance = funDistance * funFriendshipWeight + friendshipDistance * (1-funFriendshipWeight)
+
+                distanceMatrix[i][j] = fafmatsDistance 
+                distanceMatrix[j][i] = fafmatsDistance 
                 }
             }
     }
 
 
-    fun printAffinityMatrix() {
+
+    fun printDistanceMatrix() {
         for (i in players.indices) {
             for (j in players.indices) {
-                if (i != j) {  // Optional, if you don't want to print the affinity score of a player with themselves.
+                if (i != j) {
                     val player1 = players[i]
                     val player2 = players[j]
                     val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
                     val secondsSinceLastGame = getSecondsSinceLastGame(player1, player2, games)
-                    val score = affinityMatrix[i][j]
+                    val score = distanceMatrix[i][j]
                     println("FAFMATS distance for ${player1.name} [elo: ${player1.elo}] and ${player2.name} [elo: ${player2.elo}] with elo difference ${eloDiff} and time difference ${secondsSinceLastGame}: $score")
                 }
             }
@@ -99,7 +106,7 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
 
 
     fun createClustering() {
-        val linkage = CompleteLinkage.of(affinityMatrix)
+        val linkage = CompleteLinkage.of(distanceMatrix)
         clustering = HierarchicalClustering.fit(linkage)
     }
 

@@ -34,7 +34,7 @@ fun main() {
     val funFriendshipWeight = 0.5
     val playerSplitter = PlayerSplitter(players, games, funFriendshipWeight)
 
-    playerSplitter.printAffinityMatrix()
+    playerSplitter.printDistanceMatrix()
     println()
     playerSplitter.printClustering()
     println()
