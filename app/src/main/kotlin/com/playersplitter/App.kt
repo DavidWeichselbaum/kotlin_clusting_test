@@ -12,10 +12,28 @@ import com.playersplitter.Node
 
 val expectedTenfoldAdvantage: Double = 400.0
 val kFactor: Double = 32.0
+val funFriendshipWeight = 0.1
+
+
+fun splitBySizes(list: MutableList<Player>, sizes: List<Int>): MutableList<MutableList<Player>> {
+    val result = mutableListOf<MutableList<Player>>()
+    var currentIndex = 0
+    for (size in sizes) {
+        val end = currentIndex + size
+        if (end <= list.size) {
+            result.add(list.subList(currentIndex, end))
+            currentIndex = end
+        } else {
+            // Handle case where there aren't enough elements left in the list for the given size
+            result.add(list.subList(currentIndex, list.size))
+            break
+        }
+    }
+    return result
+}
 
 
 fun main() {
-    val funFriendshipWeight = 0.1
 
     val players = List(17) {
         Player(
@@ -32,20 +50,28 @@ fun main() {
 
     val draftStartTime = LocalDateTime.now().minusHours(100)
 
-    for (draftID in 1..20){
+    for (draftID in 1..10){
         var draftTime = draftStartTime.plusHours(6 * draftID.toLong())
 
         println("\nDraft ${draftID}")
 
-        val playerSplitter = PlayerSplitter(players, games, funFriendshipWeight)
+        var playerSplits: MutableList<MutableList<Player>>? = null
+        if (true){
+            val playerSplitter = PlayerSplitter(players, games, funFriendshipWeight)
 
-        // playerSplitter.printDistanceMatrix()
-        // println()
-        // playerSplitter.printClustering()
-        // println()
-        // playerSplitter.printTree()
-        // println()
-        val playerSplits = playerSplitter.split(playerSplitTargets)
+            // playerSplitter.printDistanceMatrix()
+            // println()
+            // playerSplitter.printClustering()
+            // println()
+            // playerSplitter.printTree()
+            // println()
+            
+            playerSplits = playerSplitter.split(playerSplitTargets)
+        } else {
+            val mutablePlayers = players.toMutableList()
+            mutablePlayers.shuffle()
+            playerSplits = splitBySizes(mutablePlayers, playerSplitTargets)
+        }
 
         if (playerSplits != null){
             for (tableID in 0 until playerSplits.size) {
@@ -153,6 +179,7 @@ fun resetRanks(players: List<Player>) {
 
 fun fakeDraft(players: List<Player>, games: MutableList<Game>, time: LocalDateTime, rounds: Int = 3){
     val unmatchedPlayers = players.toMutableList()
+    unmatchedPlayers.shuffle()
 
     for (round in 1..rounds) {
         // println("Round: ${round}")
