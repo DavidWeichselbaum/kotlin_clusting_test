@@ -12,7 +12,8 @@ import com.playersplitter.Node
 
 val expectedTenfoldAdvantage: Double = 400.0
 val kFactor: Double = 32.0
-val funFriendshipWeight = 0.1
+val funFriendshipWeight = 0.9
+val doFAFMATS: Boolean = true
 
 
 fun splitBySizes(list: MutableList<Player>, sizes: List<Int>): MutableList<MutableList<Player>> {
@@ -56,7 +57,7 @@ fun main() {
         println("\nDraft ${draftID}")
 
         var playerSplits: MutableList<MutableList<Player>>? = null
-        if (true){
+        if (doFAFMATS){
             val playerSplitter = PlayerSplitter(players, games, funFriendshipWeight)
 
             // playerSplitter.printDistanceMatrix()
@@ -92,7 +93,7 @@ fun main() {
     val matchFrequencyMatrix: Array<IntArray> = Array(players.size) { IntArray(players.size) }
     for (game in games){
         matchFrequencyMatrix[game.player1][game.player2] = matchFrequencyMatrix[game.player1][game.player2] +1
-        matchFrequencyMatrix[game.player2][game.player1] = matchFrequencyMatrix[game.player1][game.player2] +1
+        matchFrequencyMatrix[game.player2][game.player1] = matchFrequencyMatrix[game.player2][game.player1] +1
     }
     println("Times played against:")
     for (i in players.indices) {
