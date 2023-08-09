@@ -19,11 +19,24 @@ fun getSecondsSinceLastGame(player1: Player, player2: Player, games: List<Game>)
                          .maxByOrNull { it.dateTime }
     val mostRecentJoinDate = player1.joiningDate.coerceAtLeast(player2.joiningDate)
 
-    val secondsSinceLastGame = lastGameDate?.dateTime?.let {
-        java.time.temporal.ChronoUnit.SECONDS.between(it, LocalDateTime.now()).toDouble()
-    } ?: java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, LocalDateTime.now()).toDouble()
+    val currentDate = LocalDateTime.now()
+    val lastGameDateTime = lastGameDate?.dateTime
+    val secondsSinceLastGame: Double = if (lastGameDateTime != null) {
+        java.time.temporal.ChronoUnit.SECONDS.between(lastGameDateTime, currentDate).toDouble()
+    } else {
+        java.time.temporal.ChronoUnit.SECONDS.between(mostRecentJoinDate, currentDate).toDouble()
+    }
 
     return secondsSinceLastGame
+}
+
+
+fun formatSeconds(seconds: Int): String {
+    val hours = seconds / 3600
+    val minutes = (seconds % 3600) / 60
+    val remainingSeconds = seconds % 60
+
+    return String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds)
 }
 
 
@@ -73,8 +86,8 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
                 val secondsSinceLastGame = getSecondsSinceLastGame(player1, player2, games)
 
                 // Normalize differences
-                val normalizedEloDiff = (eloDiff - minEloDiff) / (maxEloDiff - minEloDiff)
-                val normalizedTimeDiff = (secondsSinceLastGame - minTimeDiff) / (maxTimeDiff - minTimeDiff)
+                val normalizedEloDiff = (eloDiff - minEloDiff) / eloDifference
+                val normalizedTimeDiff = (secondsSinceLastGame - minTimeDiff) / timeDifference
 
                 val funDistance: Double = normalizedEloDiff
                 val friendshipDistance: Double = 1 - normalizedTimeDiff
@@ -97,8 +110,9 @@ class PlayerSplitter (val players: List<Player>, val games: List<Game>, val funF
                     val player2 = players[j]
                     val eloDiff = kotlin.math.abs(player1.elo - player2.elo).toDouble()
                     val secondsSinceLastGame = getSecondsSinceLastGame(player1, player2, games)
+                    val secondsSinceLastGameString = formatSeconds(secondsSinceLastGame.toInt())
                     val score = distanceMatrix[i][j]
-                    println("FAFMATS distance for ${player1.name} [elo: ${player1.elo}] and ${player2.name} [elo: ${player2.elo}] with elo difference ${eloDiff} and time difference ${secondsSinceLastGame}: $score")
+                    println("FAFMATS distance for ${player1.name} [elo: ${player1.elo}] and ${player2.name} [elo: ${player2.elo}] with elo difference ${eloDiff} and time difference ${secondsSinceLastGameString}: ${score}")
                 }
             }
         }

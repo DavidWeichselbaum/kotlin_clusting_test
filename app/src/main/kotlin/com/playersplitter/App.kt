@@ -1,6 +1,7 @@
 package com.playersplitter
 
 import kotlin.math.pow
+import kotlin.random.Random
 import java.time.LocalDateTime
 
 import com.playersplitter.PlayerSplitter
@@ -9,8 +10,12 @@ import com.playersplitter.Game
 import com.playersplitter.Node
 
 
+val expectedTenfoldAdvantage: Double = 400.0
+val kFactor: Double = 32.0
+
+
 fun main() {
-    val funFriendshipWeight = 0.5
+    val funFriendshipWeight = 0.1
 
     val players = List(17) {
         Player(
@@ -18,33 +23,34 @@ fun main() {
             name="Player${it}",
             elo=1000.0,
             realElo=(500..1500).random().toDouble(),
-            joiningDate=LocalDateTime.now()
+            joiningDate=LocalDateTime.now().minusHours(103)
         )
     }
 
     val games: MutableList<Game> = mutableListOf()
     val playerSplitTargets: List<Int> = listOf(8, 9)
 
+    val draftStartTime = LocalDateTime.now().minusHours(100)
 
     for (draftID in 1..20){
-        var draftTime = LocalDateTime.now().plusHours(6 * draftID.toLong())
+        var draftTime = draftStartTime.plusHours(6 * draftID.toLong())
 
-        println("Draft ${draftID}")
+        println("\nDraft ${draftID}")
 
         val playerSplitter = PlayerSplitter(players, games, funFriendshipWeight)
 
-        playerSplitter.printDistanceMatrix()
-        println()
-        playerSplitter.printClustering()
-        println()
-        playerSplitter.printTree()
-        println()
+        // playerSplitter.printDistanceMatrix()
+        // println()
+        // playerSplitter.printClustering()
+        // println()
+        // playerSplitter.printTree()
+        // println()
         val playerSplits = playerSplitter.split(playerSplitTargets)
 
         if (playerSplits != null){
             for (tableID in 0 until playerSplits.size) {
                 var playerSplit = playerSplits[tableID]
-                println("Split of ${playerSplit.size} players:")
+                println("\nSplit of ${playerSplit.size} players:")
                 for (player in playerSplit) {
                     println("    " + player)
                 }
@@ -54,13 +60,40 @@ fun main() {
             }
         }
     }
+
+
+    println("Matches total: ${games.size}")
+    val matchFrequencyMatrix: Array<IntArray> = Array(players.size) { IntArray(players.size) }
+    for (game in games){
+        matchFrequencyMatrix[game.player1][game.player2] = matchFrequencyMatrix[game.player1][game.player2] +1
+        matchFrequencyMatrix[game.player2][game.player1] = matchFrequencyMatrix[game.player1][game.player2] +1
+    }
+    println("Times played against:")
+    for (i in players.indices) {
+        for (j in players.indices) {
+            println("${players[i].name} vs. ${players[j].name} : ${matchFrequencyMatrix[i][j]}")
+        }
+    }
+
+    val matchFrequencyList: MutableList<Int> = mutableListOf()
+    for (i in players.indices) {
+        for (j in players.indices) {
+            if (i > j){
+                matchFrequencyList.add(matchFrequencyMatrix[i][j])
+            }
+        }
+    }
+    val matchFrequencyCounter = matchFrequencyList.groupingBy { it }.eachCount()
+    // for (matchFrequencyCount in matchFrequencyCounter){
+    //     println("2 Same Player being paired ${matchFrequencyCount.} times happened ${} times")
+    // }
+    matchFrequencyCounter.entries.sortedBy { it.key }.forEach {
+        println("The same pairing ${it.key} times appears ${it.value} times")
+    }
 }
 
 
 fun getElos(eloAOld: Double, eloBOld: Double, result: String): Pair<Double, Double>{
-    val expectedTenfoldAdvantage: Double = 400.0
-    val kFactor: Double = 32.0
-
     var eloDifference: Double = eloBOld.toDouble() - eloAOld.toDouble()
     val playerAExpectedScore: Double = (1 / (1 + 10.toDouble().pow((eloDifference / expectedTenfoldAdvantage))))
     val playerAScore: Double =
@@ -90,10 +123,12 @@ fun Game.hasPlayed(p1: Player, p2: Player): Boolean {
 
 
 fun fakeMatch(player1: Player, player2: Player, time: LocalDateTime, games: MutableList<Game>): Player {
-    // val winner = if (Math.random() > 0.5) player1 else player2
     val realEloDifference = player2.elo - player1.elo
 
-    val winner = if (realEloDifference < 0.0) player1 else player2
+    val player1WinProb: Double = (1 / (1 + 10.toDouble().pow((realEloDifference / expectedTenfoldAdvantage))))
+
+    val randomValue = Random.nextDouble()
+    val winner = if (randomValue < player1WinProb) player1 else player2
 
     games.add(Game(player1.id, player2.id, time))
 
@@ -120,11 +155,15 @@ fun fakeDraft(players: List<Player>, games: MutableList<Game>, time: LocalDateTi
     val unmatchedPlayers = players.toMutableList()
 
     for (round in 1..rounds) {
-        println("Round: ${round}")
+        // println("Round: ${round}")
 
-        unmatchedPlayers.sortBy { it.rank }
+        unmatchedPlayers.sortBy { - it.rank }  // sort inverted
 
         val currentRoundMatches = mutableListOf<Game>()
+
+        // for (player in unmatchedPlayers){
+        //     println("${player.name}: ${player.rank}")
+        // }
 
         for (i in 0 until unmatchedPlayers.size-1 step 2) {
             val player1 = unmatchedPlayers[i]
@@ -136,8 +175,10 @@ fun fakeDraft(players: List<Player>, games: MutableList<Game>, time: LocalDateTi
             //     player2 = unmatchedPlayers[i + 1]
             // }
 
+            // println("${player1}, ${player2}")
             val winner = fakeMatch(player1, player2, time, currentRoundMatches)
-
+            // println("${player1}, ${player2}")
+            println("${player1.name} vs ${player2.name} winner: ${winner.name}")
 
             // Adjust rankings based on the result
             if (winner == player1) {
@@ -147,13 +188,10 @@ fun fakeDraft(players: List<Player>, games: MutableList<Game>, time: LocalDateTi
                 player2.rank++
                 player1.rank--
             }
-
-            println("${player1.name} vs ${player2.name} winner: ${winner.name}    ${player1}, ${player2}")
         }
 
         games.addAll(currentRoundMatches)
-        resetRanks(players)
     }
-
+    resetRanks(players)
 
 }
